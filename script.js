@@ -1,188 +1,170 @@
 const CHANNEL_ID = "3473755";
 const READ_API_KEY = "ZD662I6GZEHMSGIT";
 
-let tempGauge;
-let humGauge;
-
 let tempChart;
 let humChart;
-
-createGauges();
 
 loadData();
 
 setInterval(loadData, 30000);
 
-function createGauges() {
+asynchannels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=40`;
 
-    const tempOpts = {
+        const response = await fetch(url);
 
-        angle: -0.2,
+        const data = await response.json();
 
-        lineWidth: 0.25,
+        const feeds = data.feeds;
 
-        radiusScale: 1,
+        const temperatures = feeds
+            .map(feed => parseFloat(feed.field1))
+            .filter(value => !isNaN(value));
 
-        pointer: {
-            length: 0.6,
-            strokeWidth: 0.04
-        },
+        const humidities = feeds
+            .map(feed => parseFloat(feed.field2))
+            .filter(value => !isNaN(value));
 
-        staticZones: [
-
-            { strokeStyle: "#00b300", min: 0, max: 20 },
-
-            { strokeStyle: "#66cc00", min: 20, max: 30 },
-
-            { strokeStyle: "#ff9900", min: 30, max: 40 },
-
-            { strokeStyle: "#ff3300", min: 40, max: 50 }
-        ]
-    };
-
-    tempGauge =
-        new Gauge(
-            document.getElementById('tempGauge')
+        const labels = feeds.map(feed =>
+            new Date(feed.created_at)
+            .toLocaleTimeString()
         );
 
-    tempGauge.setOptions(tempOpts);
+        if (
+            temperatures.length === 0 ||
+            humidities.length === 0
+        ) {
+            return;
+        }
 
-    tempGauge.maxValue = 50;
+        const latestTemp =
+            temperatures[temperatures.length - 1];
 
-    tempGauge.setMinValue(0);
+        const latestHum =
+            humidities[humidities.length - 1];
 
-    tempGauge.set(0);
+        document.getElementById("tempValue")
+            .innerText =
+            latestTemp.toFixed(2) + " °C";
 
-    const humOpts = {
+        document.getElementById("humValue")
+            .innerText =
+            latestHum.toFixed(2) + " %";
 
-        angle: -0.2,
-
-        lineWidth: 0.25,
-
-        radiusScale: 1,
-
-        staticZones: [
-
-            { strokeStyle: "#00aaff", min: 0, max: 100 }
-
-        ]
-    };
-
-    humGauge =
-        new Gauge(
-            document.getElementById('humGauge')
+        updateStats(
+            temperatures,
+            "temp"
         );
 
-    humGauge.setOptions(humOpts);
+        updateStats(
+            humidities,
+            "hum"
+        );
 
-    humGauge.maxValue = 100;
+        drawTemperatureChart(
+            labels,
+            temperatures
+        );
 
-    humGauge.setMinValue(0);
+        drawHumidityChart(
+            labels,
+            humidities
+        );
 
-    humGauge.set(0);
+    }
+    catch (error) {
+
+        console.error(error);
+
+    }
 }
 
-async function loadData() {
+function updateStats(values, prefix) {
 
-    const url =
-        `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=40`;
-
-    const response = await fetch(url);
-
-    const data = await response.json();
-
-    const feeds = data.feeds;
-
-    const temperatures =
-        feeds.map(item =>
-            parseFloat(item.field1))
-            .filter(v => !isNaN(v));
-
-    const humidities =
-        feeds.map(item =>
-            parseFloat(item.field2))
-            .filter(v => !isNaN(v));
-
-    const timestamps =
-        feeds.map(item =>
-            new Date(item.created_at)
-            .toLocaleTimeString());
-
-    const latestTemp =
-        temperatures[temperatures.length - 1];
-
-    const latestHum =
-        humidities[humidities.length - 1];
-
-    document.getElementById(
-        'tempValue'
-    ).innerHTML =
-        latestTemp.toFixed(2) + " °C";
-
-    document.getElementById(
-        'humValue'
-    ).innerHTML =
-        latestHum.toFixed(2) + " %";
-
-    tempGauge.set(latestTemp);
-
-    humGauge.set(latestHum);
-
-    updateStatistics(
-        temperatures,
-        "temp"
-    );
-
-    updateStatistics(
-        humidities,
-        "hum"
-    );
-
-    drawTempChart(
-        timestamps,
-        temperatures
-    );
-
-    drawHumChart(
-        timestamps,
-        humidities
-    );
-}
-
-function updateStatistics(values, prefix) {
-
-    let min =
+    const min =
         Math.min(...values);
 
-    let max =
+    const max =
         Math.max(...values);
 
-    let avg =
+    const avg =
         values.reduce(
-            (a,b)=>a+b,0
+            (a, b) => a + b,
+            0
         ) / values.length;
 
-    document.getElementById(
-        prefix + "Min"
-    ).innerHTML =
+    document.getElementById(prefix + "Min")
+        .innerText =
         min.toFixed(2);
 
-    document.getElementById(
-        prefix + "Max"
-    ).innerHTML =
+    document.getElementById(prefix + "Max")
+        .innerText =
         max.toFixed(2);
 
-    document.getElementById(
-        prefix + "Avg"
-    ).innerHTML =
+    document.getElementById(prefix + "Avg")
+        .innerText =
         avg.toFixed(2);
 }
 
-function drawTempChart(
+function drawTemperatureChart(
     labels,
     values
-){
+) {
 
-    if(tempChart){
+    if (tempChart) {
+        tempChart.destroy();
+    }
 
-        
+    tempChart =
+        new Chart(
+            document.getElementById("tempChart"),
+            {
+                type: "line",
+
+                data: {
+                    labels: labels,
+
+                    datasets: [{
+                        label: "Temperature (°C)",
+                        data: values,
+                        borderColor: "#00b894",
+                        backgroundColor:
+                            "rgba(0,184,148,0.2)",
+                        tension: 0.3,
+                        fill: true
+                    }]
+                }
+            }
+        );
+}
+
+function drawHumidityChart(
+    labels,
+    values
+) {
+
+    if (humChart) {
+        humChart.destroy();
+    }
+
+    humChart =
+        new Chart(
+            document.getElementById("humChart"),
+            {
+                type: "line",
+
+                data: {
+                    labels: labels,
+
+                    datasets: [{
+                        label: "Humidity (%)",
+                        data: values,
+                        borderColor: "#0984e3",
+                        backgroundColor:
+                            "rgba(9,132,227,0.2)",
+                        tension: 0.3,
+                        fill: true
+                    }]
+                }
+            }
+        );
+}
