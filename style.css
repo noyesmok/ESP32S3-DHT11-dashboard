@@ -1,65 +1,105 @@
-body {
-    margin: 20px;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f1f3f6;
+* {
+    box-sizing: border-box;
 }
 
-h1 {
-    text-align: center;
+body {
+    margin: 0;
+    padding: 24px 16px 40px;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: #222;
+}
+
+.dashboard {
+    max-width: 980px;
+    margin: 0 auto;
 }
 
 .gauges {
     display: flex;
-    gap: 20px;
     justify-content: center;
+    gap: 48px;
     flex-wrap: wrap;
 }
 
-.card {
-    background: white;
-    width: 420px;
-    padding: 20px;
-    border-radius: 15px;
-
-    box-shadow:
-        0px 2px 10px rgba(0,0,0,0.15);
-
+.gauge-block {
     text-align: center;
+    min-width: 280px;
+}
+
+.gauge-block h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .value {
-    font-size: 40px;
-    font-weight: bold;
-    margin: 20px 0;
+    margin-top: -8px;
+    font-size: 28px;
+    font-weight: 700;
 }
 
-.stats {
+.stats-row {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 64px;
+    flex-wrap: wrap;
+    margin: 28px 0 36px;
+}
+
+.stats-block {
+    text-align: center;
+    min-width: 280px;
+}
+
+.stats-block h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.stats-label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.stats-value {
     font-size: 18px;
+    font-weight: 700;
 }
 
-.chartCard {
-    background: white;
-    margin: 30px auto;
-    padding: 20px;
-
-    border-radius: 15px;
-
-    width: 95%;
-
-    box-shadow:
-        0px 2px 10px rgba(0,0,0,0.15);
+.chart-card {
+    width: 100%;
+    margin: 0 auto;
 }
 
-canvas {
-    max-width: 100%;
+.chart-card h2 {
+    text-align: center;
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 700;
 }
 
-@media(max-width:768px){
+.chart-card canvas {
+    width: 100% !important;
+    max-height: 420px;
+}
 
-    .card{
-        width:100%;
+@media (max-width: 700px) {
+    .gauges,
+    .stats-row {
+        gap: 24px;
     }
 
+    .stats-row {
+        margin: 20px 0 28px;
+    }
 }
