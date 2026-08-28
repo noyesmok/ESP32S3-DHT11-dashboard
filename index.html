@@ -5,19 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 IoT Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="style.css?v=2">
 </head>
 
 <body>
     <div class="dashboard">
+        <p id="status" class="status">Loading data...</p>
 
         <div class="gauges">
             <div class="gauge-block">
                 <h2>TEMPERATURE</h2>
                 <canvas id="tempGauge" width="280" height="160"></canvas>
-                <div id="tempValue" class="value">-- °C</div>
+                <div id="tempValue" class="value">-- &deg;C</div>
             </div>
 
             <div class="gauge-block">
@@ -69,10 +68,30 @@
             <h2>Temperature</h2>
             <canvas id="tempChart"></canvas>
         </div>
-
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        function loadScript(src) {
+            return new Promise(function (resolve, reject) {
+                var s = document.createElement("script");
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
+        loadScript("https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js")
+            .catch(function () {
+                return loadScript("https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js");
+            })
+            .catch(function () {
+                console.warn("Chart.js CDN failed; gauges/stats will still work");
+            })
+            .finally(function () {
+                return loadScript("script.js?v=2");
+            });
+    </script>
 </body>
 
 </html>

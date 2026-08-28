@@ -15,6 +15,18 @@ body {
     margin: 0 auto;
 }
 
+.status {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin: 0 0 16px;
+}
+
+.status.error {
+    color: #c0392b;
+    font-weight: 700;
+}
+
 .gauges {
     display: flex;
     justify-content: center;
