@@ -1,1 +1,70 @@
+<!DOCTYPE html>
+<html>
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ESP32 IoT Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    https://cdn.jsdelivr.net/npm/chart.jsscript>
+    <script src="https://bernii.github.io/gauge.js/distscript>
+</head>
+
+<body>
+
+    <h1>ESP32 Environmental Dashboard</h1>
+
+    <div class="gauges">
+
+        <div class="card">
+            <h2>TEMPERATURE</h2>
+
+            <canvas id="tempGauge"></canvas>
+
+            <div id="tempValue" class="value">
+                -- °C
+            </div>
+
+            <div class="stats">
+                <div>Min: <span id="tempMin">--</span></div>
+                <div>Max: <span id="tempMax">--</span></div>
+                <div>Avg: <span id="tempAvg">--</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>HUMIDITY</h2>
+
+            <canvas id="humGauge"></canvas>
+
+            <div id="humValue" class="value">
+                -- %
+            </div>
+
+            <div class="stats">
+                <div>Min: <span id="humMin">--</span></div>
+                <div>Max: <span id="humMax">--</span></div>
+                <div>Avg: <span id="humAvg">--</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="chartCard">
+        <h2>Temperature History</h2>
+        <canvas id="tempChart"></canvas>
+    </div>
+
+    <div class="chartCard">
+        <h2>Humidity History</h2>
+        <canvas id="humChart"></canvas>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
