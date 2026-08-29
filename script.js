@@ -1,6 +1,11 @@
 const CHANNEL_ID = "3473755";
 const READ_API_KEY = "CY11QZ7XRYI4MIE9";
-const RESULTS = 40;
+
+// Last 24 hours of ThingSpeak data
+const HISTORY_MINUTES = 1440;
+
+// Dashboard refresh: every 5 minutes (MCU uploads every 10 minutes)
+const REFRESH_MS = 5 * 60 * 1000;
 
 const TEMP_MIN = 0;
 const TEMP_MAX = 50;
@@ -18,10 +23,10 @@ function setStatus(text, isError) {
 }
 
 loadData();
-setInterval(loadData, 30000);
+setInterval(loadData, REFRESH_MS);
 
 async function loadData() {
-    setStatus("Loading data...");
+    setStatus("Loading 24h data...");
 
     try {
         const url =
@@ -29,8 +34,8 @@ async function loadData() {
             CHANNEL_ID +
             "/feeds.json?api_key=" +
             READ_API_KEY +
-            "&results=" +
-            RESULTS;
+            "&minutes=" +
+            HISTORY_MINUTES;
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -41,7 +46,7 @@ async function loadData() {
         const feeds = data.feeds || [];
 
         if (feeds.length === 0) {
-            setStatus("ThingSpeak returned 0 feeds", true);
+            setStatus("ThingSpeak returned 0 feeds for last 24h", true);
             return;
         }
 
@@ -89,7 +94,7 @@ async function loadData() {
         setStatus(
             "Updated " +
             formatTimestamp(new Date().toISOString()) +
-            " · " +
+            " · last 24h · " +
             points.length +
             " readings"
         );
@@ -182,12 +187,16 @@ function drawGauge(canvas, value, min, max, style) {
     ctx.fill();
 }
 
+// For 24h charts (~144 points), only label every Nth point to avoid clutter
 const valueLabelPlugin = {
     id: "valueLabels",
     afterDatasetsDraw: function (chart) {
         const ctx = chart.ctx;
         const meta = chart.getDatasetMeta(0);
         if (!meta || !meta.data) return;
+
+        const total = meta.data.length;
+        const step = total > 48 ? Math.ceil(total / 24) : 1;
 
         ctx.save();
         ctx.fillStyle = "#222";
@@ -198,7 +207,8 @@ const valueLabelPlugin = {
         meta.data.forEach(function (point, index) {
             const raw = chart.data.datasets[0].data[index];
             if (raw == null || point.skip) return;
-            ctx.fillText(Number(raw).toFixed(2), point.x, point.y - 6);
+            if (index % step !== 0 && index !== total - 1) return;
+            ctx.fillText(Number(raw).toFixed(1), point.x, point.y - 6);
         });
 
         ctx.restore();
@@ -235,7 +245,7 @@ function drawTemperatureChart(labels, temperatures) {
                     pointBackgroundColor: "#ffffff",
                     pointBorderColor: "#1abc9c",
                     pointBorderWidth: 2,
-                    pointRadius: 4,
+                    pointRadius: temperatures.length > 80 ? 2 : 4,
                     pointHoverRadius: 5,
                     borderWidth: 2,
                     tension: 0.15
