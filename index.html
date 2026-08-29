@@ -4,69 +4,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 IoT Dashboard</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <title>ESP32 Dual Sensor Dashboard</title>
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 
 <body>
     <div class="dashboard">
+        <h1>ESP32 Dual Sensor Dashboard</h1>
         <p id="status" class="status">Loading data...</p>
 
-        <div class="gauges">
-            <div class="gauge-block">
-                <h2>TEMPERATURE</h2>
-                <canvas id="tempGauge" width="280" height="160"></canvas>
-                <div id="tempValue" class="value">-- &deg;C</div>
+        <section class="sensor-section">
+            <h2 class="section-title">DHT11</h2>
+            <div class="gauges">
+                <div class="gauge-block">
+                    <h3>TEMPERATURE</h3>
+                    <canvas id="dhtTempGauge" width="260" height="150"></canvas>
+                    <div id="dhtTempValue" class="value">-- &deg;C</div>
+                </div>
+                <div class="gauge-block">
+                    <h3>HUMIDITY</h3>
+                    <canvas id="dhtHumGauge" width="260" height="150"></canvas>
+                    <div id="dhtHumValue" class="value">-- %</div>
+                </div>
             </div>
-
-            <div class="gauge-block">
-                <h2>HUMIDITY</h2>
-                <canvas id="humGauge" width="280" height="160"></canvas>
-                <div id="humValue" class="value">-- %</div>
-            </div>
-        </div>
-
-        <div class="stats-row">
-            <div class="stats-block">
-                <h3>Temperature 24h (<span id="tempCount">--</span> readings)</h3>
-                <div class="stats-grid">
-                    <div>
-                        <div class="stats-label">Min</div>
-                        <div id="tempMin" class="stats-value">--</div>
+            <div class="stats-row">
+                <div class="stats-block">
+                    <h4>Temperature 24h (<span id="dhtTempCount">--</span>)</h4>
+                    <div class="stats-grid">
+                        <div><div class="stats-label">Min</div><div id="dhtTempMin" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Max</div><div id="dhtTempMax" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Avg</div><div id="dhtTempAvg" class="stats-value">--</div></div>
                     </div>
-                    <div>
-                        <div class="stats-label">Max</div>
-                        <div id="tempMax" class="stats-value">--</div>
-                    </div>
-                    <div>
-                        <div class="stats-label">Average</div>
-                        <div id="tempAvg" class="stats-value">--</div>
+                </div>
+                <div class="stats-block">
+                    <h4>Humidity 24h (<span id="dhtHumCount">--</span>)</h4>
+                    <div class="stats-grid">
+                        <div><div class="stats-label">Min</div><div id="dhtHumMin" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Max</div><div id="dhtHumMax" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Avg</div><div id="dhtHumAvg" class="stats-value">--</div></div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <div class="stats-block">
-                <h3>Humidity 24h (<span id="humCount">--</span> readings)</h3>
-                <div class="stats-grid">
-                    <div>
-                        <div class="stats-label">Min</div>
-                        <div id="humMin" class="stats-value">--</div>
+        <section class="sensor-section">
+            <h2 class="section-title">AHT20 + BMP280</h2>
+            <div class="gauges">
+                <div class="gauge-block">
+                    <h3>TEMPERATURE</h3>
+                    <canvas id="ahtTempGauge" width="260" height="150"></canvas>
+                    <div id="ahtTempValue" class="value">-- &deg;C</div>
+                </div>
+                <div class="gauge-block">
+                    <h3>HUMIDITY</h3>
+                    <canvas id="ahtHumGauge" width="260" height="150"></canvas>
+                    <div id="ahtHumValue" class="value">-- %</div>
+                </div>
+                <div class="gauge-block">
+                    <h3>PRESSURE</h3>
+                    <canvas id="pressGauge" width="260" height="150"></canvas>
+                    <div id="pressValue" class="value">-- hPa</div>
+                </div>
+            </div>
+            <div class="stats-row">
+                <div class="stats-block">
+                    <h4>Temperature 24h (<span id="ahtTempCount">--</span>)</h4>
+                    <div class="stats-grid">
+                        <div><div class="stats-label">Min</div><div id="ahtTempMin" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Max</div><div id="ahtTempMax" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Avg</div><div id="ahtTempAvg" class="stats-value">--</div></div>
                     </div>
-                    <div>
-                        <div class="stats-label">Max</div>
-                        <div id="humMax" class="stats-value">--</div>
+                </div>
+                <div class="stats-block">
+                    <h4>Humidity 24h (<span id="ahtHumCount">--</span>)</h4>
+                    <div class="stats-grid">
+                        <div><div class="stats-label">Min</div><div id="ahtHumMin" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Max</div><div id="ahtHumMax" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Avg</div><div id="ahtHumAvg" class="stats-value">--</div></div>
                     </div>
-                    <div>
-                        <div class="stats-label">Average</div>
-                        <div id="humAvg" class="stats-value">--</div>
+                </div>
+                <div class="stats-block">
+                    <h4>Pressure 24h (<span id="pressCount">--</span>)</h4>
+                    <div class="stats-grid">
+                        <div><div class="stats-label">Min</div><div id="pressMin" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Max</div><div id="pressMax" class="stats-value">--</div></div>
+                        <div><div class="stats-label">Avg</div><div id="pressAvg" class="stats-value">--</div></div>
                     </div>
                 </div>
             </div>
+        </section>
+
+        <div class="chart-card">
+            <h2>Temperature 24h (DHT11 vs AHT20)</h2>
+            <canvas id="tempChart"></canvas>
         </div>
 
         <div class="chart-card">
-            <h2>Temperature (24 hours)</h2>
-            <canvas id="tempChart"></canvas>
+            <h2>Humidity 24h (DHT11 vs AHT20)</h2>
+            <canvas id="humChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h2>Pressure 24h (BMP280)</h2>
+            <canvas id="pressChart"></canvas>
         </div>
     </div>
 
@@ -86,10 +126,10 @@
                 return loadScript("https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js");
             })
             .catch(function () {
-                console.warn("Chart.js CDN failed; gauges/stats will still work");
+                console.warn("Chart.js CDN failed");
             })
             .finally(function () {
-                return loadScript("script.js?v=3");
+                return loadScript("script.js?v=4");
             });
     </script>
 </body>

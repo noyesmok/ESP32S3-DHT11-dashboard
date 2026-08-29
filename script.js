@@ -1,18 +1,18 @@
 const CHANNEL_ID = "3473755";
 const READ_API_KEY = "CY11QZ7XRYI4MIE9";
-
-// Last 24 hours of ThingSpeak data
 const HISTORY_MINUTES = 1440;
-
-// Dashboard refresh: every 5 minutes (MCU uploads every 10 minutes)
 const REFRESH_MS = 5 * 60 * 1000;
 
 const TEMP_MIN = 0;
 const TEMP_MAX = 50;
 const HUM_MIN = 0;
 const HUM_MAX = 100;
+const PRESS_MIN = 950;
+const PRESS_MAX = 1050;
 
 let tempChart = null;
+let humChart = null;
+let pressChart = null;
 
 const statusEl = document.getElementById("status");
 
@@ -26,7 +26,7 @@ loadData();
 setInterval(loadData, REFRESH_MS);
 
 async function loadData() {
-    setStatus("Loading 24h data...");
+    setStatus("Loading 24h dual-sensor data...");
 
     try {
         const url =
@@ -44,64 +44,116 @@ async function loadData() {
 
         const data = await response.json();
         const feeds = data.feeds || [];
-
         if (feeds.length === 0) {
-            setStatus("ThingSpeak returned 0 feeds for last 24h", true);
+            setStatus("No feeds in last 24h", true);
             return;
         }
 
-        const points = [];
+        const labels = [];
+        const dhtTemp = [];
+        const dhtHum = [];
+        const ahtTemp = [];
+        const ahtHum = [];
+        const pressure = [];
+
         for (let i = 0; i < feeds.length; i++) {
-            const feed = feeds[i];
-            const temp = Number(feed.field1);
-            const hum = Number(feed.field2);
-            if (Number.isFinite(temp) && Number.isFinite(hum)) {
-                points.push({
-                    label: formatTimestamp(feed.created_at),
-                    temp: temp,
-                    hum: hum
-                });
-            }
+            const f = feeds[i];
+            labels.push(formatTimestamp(f.created_at));
+            dhtTemp.push(toNumOrNull(f.field1));
+            dhtHum.push(toNumOrNull(f.field2));
+            ahtTemp.push(toNumOrNull(f.field3));
+            ahtHum.push(toNumOrNull(f.field4));
+            pressure.push(toNumOrNull(f.field5));
         }
 
-        if (points.length === 0) {
-            setStatus("No valid temperature/humidity values", true);
-            return;
-        }
+        const latestDhtT = lastValid(dhtTemp);
+        const latestDhtH = lastValid(dhtHum);
+        const latestAhtT = lastValid(ahtTemp);
+        const latestAhtH = lastValid(ahtHum);
+        const latestP = lastValid(pressure);
 
-        const temperatures = points.map(function (p) { return p.temp; });
-        const humidities = points.map(function (p) { return p.hum; });
-        const labels = points.map(function (p) { return p.label; });
+        setValue("dhtTempValue", latestDhtT, " °C");
+        setValue("dhtHumValue", latestDhtH, " %");
+        setValue("ahtTempValue", latestAhtT, " °C");
+        setValue("ahtHumValue", latestAhtH, " %");
+        setValue("pressValue", latestP, " hPa");
 
-        const latestTemp = temperatures[temperatures.length - 1];
-        const latestHum = humidities[humidities.length - 1];
+        if (latestDhtT != null) drawGauge("dhtTempGauge", latestDhtT, TEMP_MIN, TEMP_MAX, "gradient");
+        if (latestDhtH != null) drawGauge("dhtHumGauge", latestDhtH, HUM_MIN, HUM_MAX, "blue");
+        if (latestAhtT != null) drawGauge("ahtTempGauge", latestAhtT, TEMP_MIN, TEMP_MAX, "gradient");
+        if (latestAhtH != null) drawGauge("ahtHumGauge", latestAhtH, HUM_MIN, HUM_MAX, "blue");
+        if (latestP != null) drawGauge("pressGauge", latestP, PRESS_MIN, PRESS_MAX, "green");
 
-        document.getElementById("tempValue").textContent =
-            latestTemp.toFixed(2) + " °C";
-        document.getElementById("humValue").textContent =
-            latestHum.toFixed(2) + " %";
+        updateStats(validOnly(dhtTemp), "dhtTemp", " °C");
+        updateStats(validOnly(dhtHum), "dhtHum", " %");
+        updateStats(validOnly(ahtTemp), "ahtTemp", " °C");
+        updateStats(validOnly(ahtHum), "ahtHum", " %");
+        updateStats(validOnly(pressure), "press", " hPa");
 
-        updateStats(temperatures, "temp", " °C");
-        updateStats(humidities, "hum", " %");
+        drawCompareChart(
+            "tempChart",
+            "tempChart",
+            labels,
+            [
+                { label: "DHT11", data: dhtTemp, color: "#e67e22" },
+                { label: "AHT20", data: ahtTemp, color: "#1abc9c" }
+            ],
+            "Temperature (Celsius)"
+        );
 
-        document.getElementById("tempCount").textContent = String(temperatures.length);
-        document.getElementById("humCount").textContent = String(humidities.length);
+        drawCompareChart(
+            "humChart",
+            "humChart",
+            labels,
+            [
+                { label: "DHT11", data: dhtHum, color: "#3498db" },
+                { label: "AHT20", data: ahtHum, color: "#9b59b6" }
+            ],
+            "Humidity (%)"
+        );
 
-        drawTempGauge(latestTemp);
-        drawHumGauge(latestHum);
-        drawTemperatureChart(labels, temperatures);
+        drawCompareChart(
+            "pressChart",
+            "pressChart",
+            labels,
+            [{ label: "BMP280", data: pressure, color: "#27ae60" }],
+            "Pressure (hPa)"
+        );
 
         setStatus(
             "Updated " +
             formatTimestamp(new Date().toISOString()) +
             " · last 24h · " +
-            points.length +
-            " readings"
+            feeds.length +
+            " feeds"
         );
     } catch (error) {
         console.error(error);
         setStatus("Failed to load data: " + error.message, true);
     }
+}
+
+function toNumOrNull(v) {
+    if (v === null || v === undefined || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function lastValid(arr) {
+    for (let i = arr.length - 1; i >= 0; i--) {
+        if (arr[i] != null) return arr[i];
+    }
+    return null;
+}
+
+function validOnly(arr) {
+    return arr.filter(function (v) { return v != null; });
+}
+
+function setValue(id, value, unit) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value == null ? "--" + unit : value.toFixed(2) + unit;
 }
 
 function formatTimestamp(iso) {
@@ -116,33 +168,40 @@ function formatTimestamp(iso) {
 }
 
 function updateStats(values, prefix, unit) {
+    const countEl = document.getElementById(prefix + "Count");
+    const minEl = document.getElementById(prefix + "Min");
+    const maxEl = document.getElementById(prefix + "Max");
+    const avgEl = document.getElementById(prefix + "Avg");
+
+    if (!values || values.length === 0) {
+        if (countEl) countEl.textContent = "0";
+        if (minEl) minEl.textContent = "--";
+        if (maxEl) maxEl.textContent = "--";
+        if (avgEl) avgEl.textContent = "--";
+        return;
+    }
+
     const min = Math.min.apply(null, values);
     const max = Math.max.apply(null, values);
     let sum = 0;
     for (let i = 0; i < values.length; i++) sum += values[i];
     const avg = sum / values.length;
 
-    document.getElementById(prefix + "Min").textContent = min.toFixed(2) + unit;
-    document.getElementById(prefix + "Max").textContent = max.toFixed(2) + unit;
-    document.getElementById(prefix + "Avg").textContent = avg.toFixed(2) + unit;
+    if (countEl) countEl.textContent = String(values.length);
+    if (minEl) minEl.textContent = min.toFixed(2) + unit;
+    if (maxEl) maxEl.textContent = max.toFixed(2) + unit;
+    if (avgEl) avgEl.textContent = avg.toFixed(2) + unit;
 }
 
-function drawTempGauge(value) {
-    drawGauge(document.getElementById("tempGauge"), value, TEMP_MIN, TEMP_MAX, "gradient");
-}
-
-function drawHumGauge(value) {
-    drawGauge(document.getElementById("humGauge"), value, HUM_MIN, HUM_MAX, "blue");
-}
-
-function drawGauge(canvas, value, min, max, style) {
+function drawGauge(canvasId, value, min, max, style) {
+    const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
     const cx = w / 2;
-    const cy = h - 18;
-    const radius = Math.min(w / 2 - 16, h - 30);
+    const cy = h - 16;
+    const radius = Math.min(w / 2 - 14, h - 28);
     const start = Math.PI;
     const clamped = Math.max(min, Math.min(max, value));
     const ratio = (clamped - min) / (max - min);
@@ -151,20 +210,21 @@ function drawGauge(canvas, value, min, max, style) {
     ctx.clearRect(0, 0, w, h);
 
     ctx.beginPath();
-    ctx.lineWidth = 18;
-    ctx.lineCap = "butt";
+    ctx.lineWidth = 16;
     ctx.strokeStyle = "#e8e8e8";
     ctx.arc(cx, cy, radius, start, 2 * Math.PI);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.lineWidth = 18;
+    ctx.lineWidth = 16;
     if (style === "gradient") {
         const grad = ctx.createLinearGradient(cx - radius, cy, cx + radius, cy);
         grad.addColorStop(0, "#2ecc71");
         grad.addColorStop(0.45, "#f1c40f");
         grad.addColorStop(1, "#e67e22");
         ctx.strokeStyle = grad;
+    } else if (style === "green") {
+        ctx.strokeStyle = "#27ae60";
     } else {
         ctx.strokeStyle = "#5dade2";
     }
@@ -183,90 +243,51 @@ function drawGauge(canvas, value, min, max, style) {
 
     ctx.beginPath();
     ctx.fillStyle = "#555";
-    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
     ctx.fill();
 }
 
-// For 24h charts (~144 points), only label every Nth point to avoid clutter
-const valueLabelPlugin = {
-    id: "valueLabels",
-    afterDatasetsDraw: function (chart) {
-        const ctx = chart.ctx;
-        const meta = chart.getDatasetMeta(0);
-        if (!meta || !meta.data) return;
-
-        const total = meta.data.length;
-        const step = total > 48 ? Math.ceil(total / 24) : 1;
-
-        ctx.save();
-        ctx.fillStyle = "#222";
-        ctx.font = "600 10px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "bottom";
-
-        meta.data.forEach(function (point, index) {
-            const raw = chart.data.datasets[0].data[index];
-            if (raw == null || point.skip) return;
-            if (index % step !== 0 && index !== total - 1) return;
-            ctx.fillText(Number(raw).toFixed(1), point.x, point.y - 6);
-        });
-
-        ctx.restore();
-    }
+const chartRefs = {
+    tempChart: null,
+    humChart: null,
+    pressChart: null
 };
 
-function drawTemperatureChart(labels, temperatures) {
-    if (typeof Chart === "undefined") {
-        console.warn("Chart.js not loaded");
-        return;
-    }
-
-    const canvas = document.getElementById("tempChart");
+function drawCompareChart(refKey, canvasId, labels, seriesList, yTitle) {
+    if (typeof Chart === "undefined") return;
+    const canvas = document.getElementById(canvasId);
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
 
-    if (tempChart) {
-        tempChart.data.labels = labels;
-        tempChart.data.datasets[0].data = temperatures;
-        tempChart.update();
+    const datasets = seriesList.map(function (s) {
+        return {
+            label: s.label,
+            data: s.data,
+            borderColor: s.color,
+            backgroundColor: s.color,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            tension: 0.15,
+            spanGaps: true
+        };
+    });
+
+    if (chartRefs[refKey]) {
+        chartRefs[refKey].data.labels = labels;
+        chartRefs[refKey].data.datasets = datasets;
+        chartRefs[refKey].update();
         return;
     }
 
-    tempChart = new Chart(ctx, {
+    chartRefs[refKey] = new Chart(canvas.getContext("2d"), {
         type: "line",
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: "Temperature",
-                    data: temperatures,
-                    borderColor: "#1abc9c",
-                    backgroundColor: "#1abc9c",
-                    pointBackgroundColor: "#ffffff",
-                    pointBorderColor: "#1abc9c",
-                    pointBorderWidth: 2,
-                    pointRadius: temperatures.length > 80 ? 2 : 4,
-                    pointHoverRadius: 5,
-                    borderWidth: 2,
-                    tension: 0.15
-                }
-            ]
-        },
+        data: { labels: labels, datasets: datasets },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            layout: {
-                padding: { top: 24, bottom: 8 }
-            },
+            interaction: { mode: "index", intersect: false },
             plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function (c) {
-                            return c.parsed.y.toFixed(2) + " °C";
-                        }
-                    }
-                }
+                legend: { display: true, position: "top" }
             },
             scales: {
                 x: {
@@ -280,18 +301,10 @@ function drawTemperatureChart(labels, temperatures) {
                     grid: { display: false }
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: "Temperature (Celsius)",
-                        font: { size: 12 }
-                    },
-                    suggestedMin: 15,
-                    suggestedMax: 40,
-                    ticks: { stepSize: 5 },
+                    title: { display: true, text: yTitle, font: { size: 12 } },
                     grid: { color: "#e6e6e6" }
                 }
             }
-        },
-        plugins: [valueLabelPlugin]
+        }
     });
 }
